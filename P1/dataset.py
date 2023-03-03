@@ -3,7 +3,7 @@ import numpy as np
 
 class Dataset:
 
-    def init(self):
+    def __init__(self):
         self.X = np.array([])
         self.y = np.array([])
         self.features = []
@@ -47,7 +47,6 @@ class Dataset:
     def describe(self):
         # Describes the input and output variables
         for i, feature in enumerate(self.features):
-            not_null = None
             print(feature)
             collumnX = self.X[:, i]
             if np.issubdtype(collumnX.dtype, np.number):
@@ -56,7 +55,6 @@ class Dataset:
                 printDescrite(collumnX)
 
         if self.label is not None:
-            not_null = None
             print(self.label)
             collumnY = self.y
             if np.issubdtype(collumnY.dtype, np.number):
@@ -75,21 +73,15 @@ class Dataset:
         self.y = np.where(self.y != self.y, value, self.y)
 
     def count_nulls(self):
-        # Counts the null values in each collum
+        # Counts the null values in each column
         null_count = np.zeros(self.X.shape[1], dtype=int)
 
         for i in range(self.X.shape[1]):
             for val in self.X[:, i]:
-                if val == '' or val == None:
+                if val == '' or val is None:
                     null_count[i] += 1
-                elif np.isnan(val):
+                elif np.issubdtype(type(val), np.number) and np.isnan(val):
                     null_count[i] += 1
-
-        if isinstance(val, str):
-            if val == None:
-                null_count[-1] += 1
-            elif np.isnan(val):
-                null_count[-1] += 1
 
         for feature in range(len(self.features)):
             print(self.features[feature], "- Null Values:", null_count[feature])
@@ -99,30 +91,25 @@ class Dataset:
                 if null_count[-1] == len(self.y):
                     print(" - All values are null.")
 
-    def replace_nulls_automatic(self):
-        # Replaces_nulls with the mean to numeric values and with the  most frequent value to categoric numbers
-        for i, n in enumerate(self.features):
+    def replace_nulls_with_mean(self):
+        # Replaces nulls with the mean for numeric values and with the most frequent value for categorical values
+        for i, feature in enumerate(self.features):
             var = self.X[:, i]
-            for v in var:
-                if v != np.nan:
-                    first_non_null = v
-            if isinstance(first_non_null, str):
-                unique_vals, counts = np.unique(var[var == var], return_counts=True)
-                self.X[:, i] = np.where(var != var, unique_vals[np.argmax(counts)], var)
-            else:
+            if np.issubdtype(var.dtype, np.number):
                 val = np.nanmean(var)
-                self.X[:, i] = np.where(var != var, val, var)
+            else:
+                unique_vals, counts = np.unique(var[var == var], return_counts=True)
+                val = unique_vals[np.argmax(counts)]
+            self.X[:, i] = np.where(np.logical_or(np.isnan(var), np.isinf(var)), val, var)
 
-            var = self.y
-            for v in var:
-                if v != np.nan:
-                    first_non_null = v
-            if isinstance(first_non_null, str):
-                unique_vals, counts = np.unique(var[var == var], return_counts=True)
-                self.y = np.where(var != var, unique_vals[np.argmax(counts)], var)
-            else:
-                val = np.nanmean(var)
-                self.y = np.where(var != var, val, var)
+        var = self.y
+        if np.issubdtype(var.dtype, np.number):
+            val = np.nanmean(var)
+            self.y = np.where(np.logical_or(np.isnan(var), np.isinf(var)), val, var)
+        else:
+            unique_vals, counts = np.unique(var[var == var], return_counts=True)
+            val = unique_vals[np.argmax(counts)]
+            self.y = np.where(var != var, val, var)
 
 
 def printNumeric(collumn):
