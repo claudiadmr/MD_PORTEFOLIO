@@ -8,6 +8,7 @@ Created on Wed Mar  8 18:03:10 2023
 import numpy as np
 from scipy import stats
 
+
 def f_regression(dataset):
     """
     Performs linear regression for feature selection using numpy.
@@ -42,10 +43,11 @@ def f_regression(dataset):
     SSR = np.sum(residuals ** 2)
 
     # Compute the degrees of freedom
+    # Compute the degrees of freedom
     n = X.shape[0]
-    p = X.shape[1]
-    df_reg = p - 1
-    df_res = n - p
+    p = dataset.X.shape[1]  # number of features in the dataset
+    df_reg = p
+    df_res = n - p - 1
 
     # Compute the F-value and p-value
     F = (SST - SSR) / df_reg / (SSR / df_res)
@@ -53,14 +55,17 @@ def f_regression(dataset):
 
     return F, p_value
 
+
 class Dataset:
     def __init__(self, X, y):
         self.X = X
         self.y = y
 
-# create a sample dataset
-X = np.array([[1, 2], [3, 4], [5, 6]])
-y = np.array([3, 7, 11])
+
+# create a sample dataset with 1000 rows and 3 columns
+np.random.seed(42)
+X = np.random.randn(1000, 3)
+y = X[:, 0] + 2 * X[:, 1] - 0.5 * X[:, 2] + np.random.randn(1000)
 dataset = Dataset(X, y)
 
 # call the function
@@ -70,4 +75,3 @@ F, p_value = f_regression(dataset)
 print("F-values:", F)
 print("p-values:", p_value)
 
-#%%
