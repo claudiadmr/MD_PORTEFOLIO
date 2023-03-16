@@ -1,152 +1,272 @@
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+
+class Node:
+    def __init__(self, split_feature=None, split_threshold=None, left_child=None, right_child=None, label=None,
+                 impurity=None):
+        self.split_feature = split_feature
+        self.split_threshold = split_threshold
+        self.left_child = left_child
+        self.right_child = right_child
+        self.label = label
+        self.impurity = impurity
+
+
+def entropy(y_pred):
+    _, counts = np.unique(y_pred, return_counts=True)
+    probs = counts / len(y_pred)
+    return -np.sum(probs * np.log2(probs))
+
+
+def gini( y_pred):
+    _, counts = np.unique(y_pred, return_counts=True)
+    probs = counts / len(y_pred)
+    return 1 - np.sum(probs ** 2)
+
+
+def gain_ratio(X, y, feature_indices):
+    base_impurity = entropy(y)
+    max_gain_ratio = 0
+    best_feature_index = None
+    best_threshold = None
+    for feature_index in feature_indices:
+        values = np.unique(X[:, feature_index])
+        for threshold in values:
+            left_indices = np.where(X[:, feature_index] <= threshold)[0]
+            right_indices = np.where(X[:, feature_index] > threshold)[0]
+            left_ratio = len(left_indices) / len(X)
+            right_ratio = len(right_indices) / len(X)
+            split_impurity = left_ratio * entropy(y[left_indices]) + right_ratio * entropy(y[right_indices])
+            information_gain = base_impurity - split_impurity
+            split_info = -left_ratio * np.log2(left_ratio) - right_ratio * np.log2(right_ratio)
+            gain_r = information_gain / split_info if split_info != 0 else 0
+            if gain_r > max_gain_ratio:
+                max_gain_ratio = gain_r
+                best_feature_index = feature_index
+                best_threshold = threshold
+    return (best_feature_index, best_threshold) if max_gain_ratio > 0 else None
+
+
+def select_best_split_entropy(X, y, feature_indices):
+    best_feature_index, best_threshold, best_info_gain = None, None, -float("inf")
+    H_y = entropy(y)
+
+    for feature_index in feature_indices:
+        thresholds = np.unique(X[:, feature_index])
+        for threshold in thresholds:
+            left_indices = np.where(X[:, feature_index] <= threshold)[0].astype(int)
+            right_indices = np.where(X[:, feature_index] > threshold)[0].astype(int)
+            H_y_x = (len(left_indices) / len(y)) * entropy(y[left_indices]) + \
+                    (len(right_indices) / len(y)) * entropy(y[right_indices])
+            info_gain = H_y - H_y_x
+            if info_gain > best_info_gain:
+                best_feature_index = feature_index
+                best_threshold = threshold
+                best_info_gain = info_gain
+
+    return best_feature_index, best_threshold
+
+
+def select_best_split_gini_index(X, y, feature_indices):
+    best_feature_index, best_threshold, best_gini = None, None, np.inf
+    for feature_index in feature_indices:
+        for threshold in np.unique(X[:, feature_index]):
+            left_indices = np.where(X[:, feature_index] <= threshold)[0]
+            right_indices = np.where(X[:, feature_index] > threshold)[0]
+            if len(left_indices) == 0 or len(right_indices) == 0:
+                continue
+            current_gini = (len(left_indices) / len(y)) * gini(y[left_indices]) \
+                           + (len(right_indices) / len(y)) * gini(y[right_indices])
+            if current_gini < best_gini:
+                best_feature_index, best_threshold, best_gini = feature_index, threshold, current_gini
+    return best_feature_index, best_threshold
+
+
+def split_information(n_left, n_right):
+    n_total = n_left + n_right
+    p_left = n_left / n_total
+    p_right = n_right / n_total
+    if p_left == 0 or p_right == 0:
+        return 0
+    else:
+        return - p_left * np.log2(p_left) - p_right * np.log2(p_right)
+
+
+def compute_gain_ratio(y, left_indices, right_indices):
+    # Compute the entropy of the whole dataset
+    entropy_before_split = entropy(y)
+
+    # Compute the weighted average entropy of the left and right partitions
+    left_entropy = entropy(y[left_indices])
+    right_entropy = entropy(y[right_indices])
+    n_instances = len(y)
+    n_left = len(left_indices)
+    n_right = n_instances - n_left
+    weighted_avg_entropy = (n_left / n_instances) * left_entropy + (n_right / n_instances) * right_entropy
+
+    # Compute the split information
+    split_info = split_information(n_left, n_right)
+
+    # Compute the gain ratio
+    gain_ratio = (entropy_before_split - weighted_avg_entropy) / split_info if split_info != 0 else 0
+
+    return gain_ratio
+
+
+def select_best_split_gain_ratio(X, y, feature_indices):
+    best_feature_index, best_threshold, max_gain_ratio = None, None, 0.0
+    for feature_index in feature_indices:
+        thresholds = np.unique(X[:, feature_index])
+        for threshold in thresholds:
+            left_indices = np.where(X[:, feature_index] <= threshold)[0]
+            right_indices = np.where(X[:, feature_index] > threshold)[0]
+            if len(left_indices) == 0 or len(right_indices) == 0:
+                continue
+            gain_ratio = compute_gain_ratio(y, left_indices, right_indices)
+            if gain_ratio > max_gain_ratio:
+                best_feature_index, best_threshold, max_gain_ratio = feature_index, threshold, gain_ratio
+    return best_feature_index, best_threshold
+
+
+def build_tree(X, y, feature_indices, max_depth=None,
+               min_samples_leaf=1, impurity_measure="entropy"):
+    if len(np.unique(y)) == 1:
+        return Node(label=y[0])
+    if max_depth is not None and max_depth == 0:
+        return Node(label=np.argmax(np.bincount(y)))
+    if len(X) < min_samples_leaf:
+        return Node(label=np.argmax(np.bincount(y)))
+    if impurity_measure == "entropy":
+        impurity_func = entropy
+        best_criteria_func = select_best_split_entropy
+    elif impurity_measure == "gini_index":
+        impurity_func = gini
+        best_criteria_func = select_best_split_gini_index
+    elif impurity_measure == "gain_ratio":
+        impurity_func = entropy
+        best_criteria_func = select_best_split_gain_ratio
+    else:
+        raise ValueError("Invalid impurity measure specified")
+    best_feature_index, best_threshold = best_criteria_func(X, y, feature_indices)
+    if best_feature_index is None:
+        return Node(label=np.argmax(np.bincount(y)))
+    left_indices = np.where(X[:, best_feature_index] <= best_threshold)[0].astype(int)
+    right_indices = np.where(X[:, best_feature_index] > best_threshold)[0].astype(int)
+    left_child = build_tree(X[left_indices], y[left_indices], feature_indices,
+                            max_depth - 1 if max_depth is not None else None, min_samples_leaf, impurity_measure)
+    right_child = build_tree(X[right_indices], y[right_indices], feature_indices,
+                             max_depth - 1 if max_depth is not None else None, min_samples_leaf, impurity_measure)
+    return Node(split_feature=best_feature_index, split_threshold=best_threshold, left_child=left_child,
+                right_child=right_child, impurity=impurity_func(y))
+
+
+def prune_tree(node, X, y, prune_method, threshold=None):
+    if node.label is not None:
+        return node
+    node.left_child = prune_tree(node.left_child, X, y, prune_method, threshold)
+    node.right_child = prune_tree(node.right_child, X, y, prune_method, threshold)
+    left_label = None
+    right_label = None
+    if node.left_child.label is not None and node.right_child.label is not None:
+        if prune_method == "majority_voting":
+            left_label = node.left_child.label
+            right_label = node.right_child.label
+            if np.sum(y == left_label) > np.sum(y == right_label):
+                node.left_child = None
+                node.right_child = None
+                node.label = left_label
+            else:
+                node.left_child = None
+                node.right_child = None
+                node.label = right_label
+    elif prune_method == "class_threshold":
+        node_samples = len(y)
+        if node.left_child.label is not None:
+            left_label = node.left_child.label
+            left_samples = len(np.where(y[node.left_child.indices] == left_label)[0])
+        else:
+            left_samples = 0
+        if node.right_child.label is not None:
+            right_label = node.right_child.label
+            right_samples = len(np.where(y[node.right_child.indices] == right_label)[0])
+        else:
+            right_samples = 0
+        if (left_samples / node_samples >= threshold) and (right_samples / node_samples >= threshold):
+            node.left_child = None
+            node.right_child = None
+        elif node.left_child.label is not None and node.right_child.label is not None:
+            if np.sum(y == left_label) > np.sum(y == right_label):
+                node.label = left_label
+            else:
+                node.label = right_label
+    return node
+
+
+def predict_sample(x, node):
+    if node.label is not None:
+        return node.label
+    if x[node.split_feature] <= node.split_threshold:
+        return predict_sample(x, node.left_child)
+    else:
+        return predict_sample(x, node.right_child)
+
+
+def predict(X, node):
+    return np.array([predict_sample(x, node) for x in X])
 
 
 class DecisionTreeClassifier:
-    def __init__(self, criterion='entropy', max_depth=None, min_samples_split=2,
-                 min_samples_leaf=1, max_features=None, pre_pruning=None,
-                 post_pruning=None, random_state=None):
-        self.criterion = criterion
+    def __init__(self, max_depth=None, min_samples_leaf=1, impurity_measure="entropy", attribute_selection="gain_ratio",
+                 prune_method=None, threshold=None):
         self.max_depth = max_depth
-        self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
-        self.max_features = max_features
-        self.pre_pruning = pre_pruning
-        self.post_pruning = post_pruning
-        self.random_state = random_state
-
-        if self.criterion == 'entropy':
-            self.impurity_func = self._entropy
-        elif self.criterion == 'gini':
-            self.impurity_func = self._gini_index
-        elif self.criterion == 'gain_ratio':
-            self.impurity_func = self._gain_ratio
+        self.impurity_measure = impurity_measure
+        self.attribute_selection = attribute_selection
+        self.prune_method = prune_method
+        self.threshold = threshold
 
     def fit(self, X, y):
-        self.n_classes_ = len(np.unique(y))
-        self.tree_ = self._build_tree(X, y)
+        self.n_features_ = X.shape[1]
+        self.feature_indices_ = np.arange(self.n_features_)
+        if self.attribute_selection == "random":
+            self.feature_indices_ = np.random.choice(self.feature_indices_, size=int(np.sqrt(self.n_features_)),
+                                                     replace=False)
+        self.root_ = build_tree(X, y, self.feature_indices_, self.max_depth, self.min_samples_leaf,
+                                self.impurity_measure)
+        if self.prune_method is not None:
+            self.root_ = prune_tree(self.root_, X, y, self.prune_method, self.threshold)
+        return self
 
     def predict(self, X):
-        return np.array([self._predict(x, self.tree_) for x in X])
-
-    def _build_tree(self, X, y, depth=0):
-        n_samples, n_features = X.shape
-
-        # Verificar se atingiu a condição de parada
-        if n_samples < self.min_samples_split or depth == self.max_depth or len(np.unique(y)) == 1:
-            return self._leaf_node(y)
-
-        # Escolher o melhor atributo para separar os dados
-        best_feature, best_threshold = self._choose_split(X, y)
-
-        # Verificar se a árvore deve ser podada antes de continuar a construção
-        if self.pre_pruning is not None and self.pre_pruning(X, y, best_feature, best_threshold):
-            return self._leaf_node(y)
-
-        # Construir subárvores para cada valor possível do atributo escolhido
-        left_indices = X[:, best_feature] < best_threshold
-        right_indices = X[:, best_feature] >= best_threshold
-        left_tree = self._build_tree(X[left_indices], y[left_indices], depth + 1)
-        right_tree = self._build_tree(X[right_indices], y[right_indices], depth + 1)
-
-        return self._decision_node(best_feature, best_threshold, left_tree, right_tree)
-
-    def _choose_split(self, X, y):
-        best_feature = None
-        best_threshold = None
-        best_impurity = np.inf
-
-        # Escolher aleatoriamente uma subconjunto de atributos, se necessário
-        if self.max_features is not None:
-            features_indices = np.random.choice(range(X.shape[1]), size=self.max_features, replace=False)
-        else:
-            features_indices = range(X.shape[1])
-
-        for i in features_indices:
-            thresholds = np.unique(X[:, i])
-
-            for threshold in thresholds:
-                left_indices = X[:, i] < threshold
-                right_indices = X[:, i] >= threshold
-
-                if np.sum(left_indices) < self.min_samples_leaf or np.sum(right_indices) < self.min_samples_leaf:
-                    continue
-
-                impurity = (np.sum(left_indices) * self.impurity_func(y[left_indices]) +
-                            np.sum(right_indices) * self.impurity_func(y[right_indices])) / len(y)
-
-                if impurity < best_impurity:
-                    best_feature = i
-                    best_threshold = threshold
-                    best_impurity = impurity
-
-        return best_feature, best_threshold
-
-    def _entropy(self, y):
-        _, counts = np.unique(y, return_counts=True)
-        probs = counts / len(y)
-        return -np.sum(probs * np.log2(probs))
-
-    def _gini_index(self, y):
-        _, counts = np.unique(y, return_counts=True)
-        probs = counts / len(y)
-        return 1 - np.sum(probs ** 2)
-
-    def _gain_ratio(self, X, y, feature):
-        feature_values, counts = np.unique(X[:, feature], return_counts=True)
-        probs = counts / len(y)
-        entropy = np.sum([-p * np.log2(p) for p in probs])
-
-        split_entropy = 0
-        for value in feature_values:
-            indices = X[:, feature] == value
-            split_entropy += np.sum(indices) / len(y) * self._entropy(y[indices])
-
-        if entropy == 0 or split_entropy == 0:
-            return 0
-
-        information_gain = entropy - split_entropy
-        intrinsic_value = -np.sum(probs * np.log2(probs))
-        return information_gain / intrinsic_value
-
-    def _leaf_node(self, y):
-        counts = np.bincount(y)
-        probas = counts / len(y)
-        return {'leaf': True, 'probas': probas}
-
-    def _decision_node(self, feature, threshold, left_subtree, right_subtree):
-        return {'leaf': False, 'feature': feature, 'threshold': threshold,
-                'left': left_subtree, 'right': right_subtree}
-
-    def _predict(self, x, tree):
-        if tree['leaf']:
-            return np.argmax(tree['probas'])
-
-        if x[tree['feature']] < tree['threshold']:
-            return self._predict(x, tree['left'])
-        else:
-            return self._predict(x, tree['right'])
+        return predict(X, self.root_)
 
 
-def test_decision_tree( test_size=0.2, random_state=42):
-    dt = pd.read_csv('tennis.csv')
-    X = dt.drop('play', axis=1)
-    y = dt['play']
-    # Separar os dados em treino e teste
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+# Carrega o conjunto de dados iris
+df = pd.read_csv("tennis.csv")
+label_enc = LabelEncoder()
+df['play'] = label_enc.fit_transform(df['play'])
+X = df.drop("play", axis=1).values
+y = df["play"].values
 
-    # Instanciar e treinar o modelo
-    dt = DecisionTreeClassifier(max_depth=3, criterion='gini', min_samples_split=5, min_samples_leaf=5)
-    dt.fit(X_train, y_train)
+# Divide o conjunto de dados em treinamento e teste
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Fazer previsões na base de teste
-    y_pred = dt.predict(X_test)
+# Cria uma instância do modelo DecisionTreeClassifier
+dtc = DecisionTreeClassifier(max_depth=3, min_samples_leaf=2, impurity_measure="entropy",
+                             attribute_selection="gain_ratio", prune_method="reduced_error", threshold=0.1)
 
-    # Calcular a acurácia
-    acc = accuracy_score(y_test, y_pred)
-    print(f'Acurácia na base de teste: {acc:.2f}')
+# Treina o modelo no conjunto de treinamento
+dtc.fit(X_train, y_train)
 
-if __name__ == '__main__':
-    test_decision_tree()
+# Faz previsões no conjunto de teste
+y_pred = dtc.predict(X_test)
+
+# Calcula a precisão do modelo
+accuracy = accuracy_score(y_test, y_pred)
+
+print("Precisão do modelo:", accuracy)
