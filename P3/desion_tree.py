@@ -1,9 +1,9 @@
-from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
+from scipy import stats
 
 
 class Node:
@@ -134,7 +134,13 @@ def select_best_split_gain_ratio(X, y, feature_indices):
 
 
 def build_tree(X, y, feature_indices, max_depth=None,
-               min_samples_leaf=1, impurity_measure="entropy"):
+               min_samples_leaf=1, impurity_measure="entropy", max_leaf_size=None, p_value=None):
+
+    if (max_leaf_size is not None or p_value is not None):
+        pre_prune = pre_pruning(X, y, max_leaf_size, max_depth, p_value)
+        if pre_prune:
+            return Node(label=np.argmax(np.bincount(y)))
+               
     if len(np.unique(y)) == 1:
         return Node(label=y[0])
     if max_depth is not None and max_depth == 0:
@@ -158,16 +164,33 @@ def build_tree(X, y, feature_indices, max_depth=None,
     left_indices = np.where(X[:, best_feature_index] <= best_threshold)[0].astype(int)
     right_indices = np.where(X[:, best_feature_index] > best_threshold)[0].astype(int)
     left_child = build_tree(X[left_indices], y[left_indices], feature_indices,
-                            max_depth - 1 if max_depth is not None else None, min_samples_leaf, impurity_measure)
+                            max_depth - 1 if max_depth is not None else None, min_samples_leaf, impurity_measure, max_leaf_size, p_value)
     right_child = build_tree(X[right_indices], y[right_indices], feature_indices,
-                             max_depth - 1 if max_depth is not None else None, min_samples_leaf, impurity_measure)
+                             max_depth - 1 if max_depth is not None else None, min_samples_leaf, impurity_measure, max_leaf_size, p_value)
     return Node(split_feature=best_feature_index, split_threshold=best_threshold, left_child=left_child,
                 right_child=right_child, impurity=impurity_func(y))
 
+def pre_pruning(X, y, max_leaf_size, max_depth, p_value):
+    # Check if the number of samples in the node is less than max_leaf_size
+    if len(y) <= max_leaf_size:
+        return True
+    # Check if the depth of the node is less than max_depth
+    if len(np.unique(y)) == 1 or max_depth == 0:
+        return True
+    # Check if the split at the node is statistically significant
+    _, p = stats.chisquare(np.bincount(y))
+    if p > p_value:
+        return True
+    else:
+        return False
 
 def prune_tree(node, X, y, prune_method, threshold=None):
     if node.label is not None:
         return node
+
+    if pre_pruning(X, y, max_leaf_size = 3, max_depth = 5, p_value= 1):
+        return Node(label=np.argmax(np.bincount(y)))
+    
     node.left_child = prune_tree(node.left_child, X, y, prune_method, threshold)
     node.right_child = prune_tree(node.right_child, X, y, prune_method, threshold)
     left_label = None
@@ -206,7 +229,6 @@ def prune_tree(node, X, y, prune_method, threshold=None):
                 node.label = right_label
     return node
 
-
 def predict_sample(x, node):
     if node.label is not None:
         return node.label
@@ -222,13 +244,15 @@ def predict(X, node):
 
 class DecisionTreeClassifier:
     def __init__(self, max_depth=None, min_samples_leaf=1, impurity_measure="entropy", attribute_selection="gain_ratio",
-                 prune_method=None, threshold=None):
+                 prune_method=None, threshold=None ,max_leaf_size=None, p_value=None):
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
         self.impurity_measure = impurity_measure
         self.attribute_selection = attribute_selection
         self.prune_method = prune_method
         self.threshold = threshold
+        self.max_leaf_size = max_leaf_size
+        self.p_value = p_value
 
     def fit(self, X, y):
         self.n_features_ = X.shape[1]
@@ -237,7 +261,7 @@ class DecisionTreeClassifier:
             self.feature_indices_ = np.random.choice(self.feature_indices_, size=int(np.sqrt(self.n_features_)),
                                                      replace=False)
         self.root_ = build_tree(X, y, self.feature_indices_, self.max_depth, self.min_samples_leaf,
-                                self.impurity_measure)
+                                self.impurity_measure, self.max_leaf_size, self.p_value)
         if self.prune_method is not None:
             self.root_ = prune_tree(self.root_, X, y, self.prune_method, self.threshold)
         return self
@@ -246,8 +270,8 @@ class DecisionTreeClassifier:
         return predict(X, self.root_)
 
 
-# Carrega o conjunto de dados iris
-df = pd.read_csv("tennis.csv")
+# Carrega o conjunto de dados
+df = pd.read_csv('PlayTennis.csv')
 label_enc = LabelEncoder()
 df['play'] = label_enc.fit_transform(df['play'])
 X = df.drop("play", axis=1).values
@@ -258,7 +282,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 
 # Cria uma instância do modelo DecisionTreeClassifier
 dtc = DecisionTreeClassifier(max_depth=3, min_samples_leaf=2, impurity_measure="entropy",
-                             attribute_selection="gain_ratio", prune_method="reduced_error", threshold=0.1)
+                             attribute_selection="gain_ratio", prune_method="reduced_error", threshold=0.1, max_leaf_size=2 ,p_value=0.5)
 
 # Treina o modelo no conjunto de treinamento
 dtc.fit(X_train, y_train)
