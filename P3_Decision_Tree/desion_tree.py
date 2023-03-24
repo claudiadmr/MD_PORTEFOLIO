@@ -271,7 +271,7 @@ class DecisionTreeClassifier:
 
 
 # Carrega o conjunto de dados
-df = pd.read_csv('PlayTennis.csv')
+df = pd.read_csv('tennis.csv')
 label_enc = LabelEncoder()
 df['play'] = label_enc.fit_transform(df['play'])
 X = df.drop("play", axis=1).values
