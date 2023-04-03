@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Mar 21 23:47:57 2023
-
-@author: catia
-"""
-
 import pandas as pd
 import numpy as np
 
@@ -131,3 +124,24 @@ y_pred = nb.predict(X_test_encoded)
 # print the predictions
 print('Predictions:', y_pred)
 
+
+'''
+this  code implements the Naive Bayes algorithm for classification. The fit method fits the model to the training data,
+and the predict method predicts the class labels for new data.
+
+The fit method takes two arguments, X and y, which are the training data and corresponding labels, respectively. It first
+computes the set of unique classes in the label y, and stores them in the self.classes attribute. It then computes the mean
+and variance of each feature in each class, and stores them in the self.parameters attribute. The mean and variance are 
+computed using the training data X for each feature, separately for each class.
+
+The predict method takes one argument, X, which is the data to be classified. It first initializes an array called probabilities
+with zeros, with dimensions (X.shape[0], len(self.classes)). This array will store the probability of each class for each data
+point. For each class c, it computes the prior probability of that class as the proportion of training data points with label c,
+and stores it in prior. It then computes the probability of each feature given the class, assuming a normal distribution with mean
+and variance given by the self.parameters attribute. It multiplies these probabilities together to obtain the joint probability of
+the features given the class, and multiplies this by the prior probability to obtain the overall probability of the class given 
+the data. It stores this probability in the appropriate entry of the probabilities array.
+
+Finally, the predict method returns the predicted class for each data point, which is the class with the highest probability according
+to the probabilities array, using the argmax function. The class labels are returned in the order given by self.classes.
+'''
