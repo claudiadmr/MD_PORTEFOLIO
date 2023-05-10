@@ -1,26 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Mar  8 18:03:10 2023
-
-@author: catia
-"""
-
 import numpy as np
 from scipy import stats
 
 
 def f_regression(dataset):
-    """
-    Performs linear regression for feature selection using numpy.
-    Parameters
-    ----------
-    dataset : Dataset
-        The dataset to perform linear regression on.
-    Returns
-    -------
-    tuple
-        A tuple containing the F-value and p-value for each feature.
-    """
 
     # Split the data into features (X) and target (y)
     X = dataset.X
@@ -42,7 +24,7 @@ def f_regression(dataset):
     # Compute the residual sum of squares
     SSR = np.sum(residuals ** 2)
 
-    # Compute the degrees of freedom
+ 
     # Compute the degrees of freedom
     n = X.shape[0]
     p = dataset.X.shape[1]  # number of features in the dataset
@@ -51,7 +33,7 @@ def f_regression(dataset):
 
     # Compute the F-value and p-value
     F = (SST - SSR) / df_reg / (SSR / df_res)
-    p_value = 1 - stats.f.cdf(F, df_reg, df_res)
+    p_value = 1 - scipy.stats.f.cdf(F, df_reg, df_res)
 
     return F, p_value
 
@@ -74,4 +56,23 @@ F, p_value = f_regression(dataset)
 # print the results
 print("F-values:", F)
 print("p-values:", p_value)
+
+'''
+This function takes a dataset object and performs a linear regression analysis on it to obtain an F-statistic
+and a p-value for each feature. The F-statistic is used to test whether all the coefficients in the regression
+model are zero, while the p-value represents the probability of obtaining the observed F-statistic (or a more 
+extreme one) under the null hypothesis.
+
+The function starts by splitting the dataset into features (X) and target (y). It then adds a column of ones to
+X for the intercept term, and computes the coefficients of the linear regression model using least squares. The
+predicted values and residuals are also computed.
+
+The function then computes the total sum of squares (SST) and the residual sum of squares (SSR), which are used 
+to calculate the F-statistic. The degrees of freedom for the regression and residual terms are also computed, 
+as well as the number of features in the dataset.
+
+Finally, the function computes the F-value and the p-value using the computed statistics and the degrees of freedom.
+The p-value is calculated using the cumulative distribution function of an F-distribution with df_reg and df_res degrees
+of freedom. The function returns the F-value and the p-value for each feature in the dataset.
+'''
 

@@ -1,27 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Mar  8 16:41:24 2023
-
-@author: catia
-"""
-
 import numpy as np
 from scipy.stats import f_oneway
 
 
 def f_classif(dataset):
-    """
-    Performs one-way ANOVA for feature selection.
-    Parameters
-    ----------
-    dataset : Dataset
-        The dataset to perform ANOVA on.
-    Returns
-    -------
-    tuple
-        A tuple containing the F-value and p-value for each feature.
-    """
-
     # Group samples by class
     groups = [dataset.X[dataset.y == i] for i in np.unique(dataset.y)]
 
@@ -53,8 +34,12 @@ F_scores, p_values = f_classif(dataset)
 print("F-scores:", F_scores)
 print("p-values:", p_values)
 
+'''
+This function takes a dataset and performs ANOVA (analysis of variance) for each feature in the dataset.
+It groups samples by class, and then calculates F-scores and p-values for each feature. The F-scores represent
+the ratio of between-group variability to within-group variability, and the p-values represent the probability
+that the null hypothesis (that the means of all groups are equal) is true.
 
-
-
-
-#%%
+The function returns two lists: F_scores, which contains the F-scores for each feature, and p_values, which 
+contains the p-values for each feature.
+'''

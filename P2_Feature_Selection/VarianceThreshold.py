@@ -2,61 +2,21 @@ import numpy as np
 
 
 class VarianceThreshold:
-    """
-    Variance Threshold feature selection.
-    Features with a training-set variance lower than this threshold will be removed from the dataset.
-    Parameters
-    ----------
-    threshold: float
-        The threshold value to use for feature selection. Features with a
-        training-set variance lower than this threshold will be removed.
-    Attributes
-    ----------
-    variance: array-like, shape (n_features,)
-        The variance of each feature.
-    """
+    # Define method for initializing the class with a threshold parameter
     def __init__(self, threshold=0.0):
-        """
-        Variance Threshold feature selection.
-        Features with a training-set variance lower than this threshold will be removed from the dataset.
-        Parameters
-        ----------
-        threshold: float
-            The threshold value to use for feature selection. Features with a
-            training-set variance lower than this threshold will be removed.
-        """
         if threshold < 0:
             raise ValueError("Threshold must be non-negative")
 
         self.threshold = threshold
         self.variance = None
-
+        
+    # Define method for computing the variance of each feature
     def fit(self, X):
-        """
-        Fit the VarianceThreshold model according to the given training data.
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            The input data.
-        Returns
-        -------
-        self : object
-        """
         self.variance = np.var(X, axis=0)
         return self
 
+    #Define method for applying the variance thresholding on the input data
     def transform(self, X):
-        """
-        It removes all features whose variance does not meet the threshold.
-        Parameters
-        ----------
-        X: array-like, shape (n_samples, n_features)
-            The input data.
-        Returns
-        -------
-        X_selected: array-like, shape (n_samples, n_features_new)
-            The input data with selected features.
-        """
         features_mask = self.variance > self.threshold
         X_selected = X[:, features_mask]
         if X_selected is not None:
@@ -67,17 +27,6 @@ class VarianceThreshold:
         return X_selected
 
     def fit_transform(self, X):
-        """
-        Fit to data, then transform it.
-        Parameters
-        ----------
-        X: array-like, shape (n_samples, n_features)
-            The input data.
-        Returns
-        -------
-        X_selected: array-like, shape (n_samples, n_features_new)
-            The input data with selected features.
-        """
         self.fit(X)
         self.transform(X)
 
@@ -97,4 +46,19 @@ def test_VarianceThreshold():
     
 test_VarianceThreshold()
 
+'''
+This is a Python class that implements a feature selection method based on variance thresholding.
 
+The class has three methods:
+
+- __init__ method initializes the class with a threshold parameter that is set to a default value of 0.0.
+If the value of threshold is less than 0, a ValueError is raised. The self.threshold and self.variance 
+variables are also initialized.
+
+- fit method computes the variance of each feature in the input data X along the 0-th axis, which corresponds
+to the feature axis. The computed variance is stored in the self.variance variable.
+
+- transform method applies the variance thresholding on the input data X. It selects the features whose variance
+is greater than the threshold value and returns the corresponding subset of X. If none of the features meet the 
+threshold, a message is printed to the console. The selected features are returned.
+'''
