@@ -1,4 +1,4 @@
-from typing import List, Set, Dict
+from typing import List, Set
 
 class TransactionDataset:
     def __init__(self, transactions: List[Set[int]]):
