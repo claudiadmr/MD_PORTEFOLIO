@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import stats
+import scipy.stats
 
 
 def f_regression(dataset):
@@ -38,24 +38,7 @@ def f_regression(dataset):
     return F, p_value
 
 
-class Dataset:
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
 
-
-# create a sample dataset with 1000 rows and 3 columns
-np.random.seed(42)
-X = np.random.randn(1000, 3)
-y = X[:, 0] + 2 * X[:, 1] - 0.5 * X[:, 2] + np.random.randn(1000)
-dataset = Dataset(X, y)
-
-# call the function
-F, p_value = f_regression(dataset)
-
-# print the results
-print("F-values:", F)
-print("p-values:", p_value)
 
 '''
 This function takes a dataset object and performs a linear regression analysis on it to obtain an F-statistic

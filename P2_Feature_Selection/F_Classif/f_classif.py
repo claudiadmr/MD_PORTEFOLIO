@@ -16,24 +16,6 @@ def f_classif(dataset):
     return F_scores, p_values
 
 
-
-# Create a toy dataset with 3 features and 4 samples
-X = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
-y = np.array([0, 0, 1, 1])
-class Dataset:
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-
-dataset = Dataset(X, y)
-
-# Call the f_classif function
-F_scores, p_values = f_classif(dataset)
-
-# Print the F-scores and p-values
-print("F-scores:", F_scores)
-print("p-values:", p_values)
-
 '''
 This function takes a dataset and performs ANOVA (analysis of variance) for each feature in the dataset.
 It groups samples by class, and then calculates F-scores and p-values for each feature. The F-scores represent

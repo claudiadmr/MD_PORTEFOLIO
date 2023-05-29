@@ -31,20 +31,6 @@ class VarianceThreshold:
         self.transform(X)
 
 
-def test_VarianceThreshold():
-    # Create a toy dataset
-    X = np.array([[1, 2, 1, 3],
-                  [5, 1, 4, 3],
-                  [0, 1, 1, 3]])
-    y = np.array([0, 1, 0])
-
-    # Create a VarianceThreshold object
-    selector = VarianceThreshold(threshold= 1)
-
-    # Fit the selector to the data
-    selector.fit_transform(X)
-    
-test_VarianceThreshold()
 
 '''
 This is a Python class that implements a feature selection method based on variance thresholding.
