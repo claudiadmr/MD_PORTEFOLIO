@@ -1,106 +1,90 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-
 import numpy as np
-from dataset import Dataset
 
 
-class MLP:
-
-    def __init__(self, dataset, hidden_nodes=2, normalize=False):
-        self.X, self.y = dataset.getXy()
-        self.X = np.hstack((np.ones([self.X.shape[0], 1]), self.X))
-
-        self.h = hidden_nodes
-        self.W1 = np.zeros([hidden_nodes, self.X.shape[1]])
-        self.W2 = np.zeros([1, hidden_nodes + 1])
-
-        if normalize:
-            self.normalize()
-        else:
-            self.normalized = False
-
-    def setWeights(self, w1, w2):
-        self.W1 = w1
-        self.W2 = w2
-
-    def predict(self, instance):
-        x = np.empty([self.X.shape[1]])
-        x[0] = 1
-        x[1:] = np.array(instance[:self.X.shape[1] - 1])
-
-        if self.normalized:
-            if np.all(self.sigma != 0):
-                x[1:] = (x[1:] - self.mu) / self.sigma
-            else:
-                x[1:] = (x[1:] - self.mu)
-
-        z2 = np.dot(self.W1, x)
-        a2 = np.empty([z2.shape[0] + 1])
-        a2[0] = 1
-        a2[1:] = sigmoid(z2)
-        z3 = np.dot(self.W2, a2)
-
-        return sigmoid(z3)
-
-    def costFunction(self, weights=None):
-        m= self.X.shape[0]
-        Z2 = np.dot(self.X, self.W1.T)
-        A2 = np.hstack((np.ones([Z2.shape[0],1]), sigmoid(Z2)))
-        Z3= np.dot(A2, self.W2.T)
-        predictions = sigmoid(Z3)
-        sqe = (predictions - self.y.reshape(m,1))**2
-        res= np.sum(sqe)/(2*m)
-        return res
-
-    def build_model(self):
-        from scipy import optimize
-
-        size = self.h * self.X.shape[1] + self.h + 1
-
-        initial_w = np.random.rand(size)
-        result = optimize.minimize(lambda w: self.costFunction(w), initial_w, method='BFGS',
-                                   options={"maxiter": 1000, "disp": False})
-        weights = result.x
-        self.W1 = weights[:self.h * self.X.shape[1]].reshape([self.h, self.X.shape[1]])
-        self.W2 = weights[self.h * self.X.shape[1]:].reshape([1, self.h + 1])
-
-    def normalize(self):
-        self.mu = np.mean(self.X[:, 1:], axis=0)
-        self.X[:, 1:] = self.X[:, 1:] - self.mu
-        self.sigma = np.std(self.X[:, 1:], axis=0)
-        self.X[:, 1:] = self.X[:, 1:] / self.sigma
-        self.normalized = True
-
-
+# Sigmoid function used for activation function
 def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+    return 1.0 / (1 + np.exp(-x))
+
+
+# Derivative of the sigmoid function, used during backpropagation
+def sigmoid_derivative(x):
+    return x * (1.0 - x)
+
+
+# MLP Class
+class MLP:
+    # Constructor of MLP class
+    def __init__(self, x, y, hidden_size):
+        self.input = x  # Input data
+        self.weights1 = np.random.rand(self.input.shape[1], hidden_size)  # Weights for input layer
+        self.weights2 = np.random.rand(hidden_size, 1)  # Weights for hidden layer
+        self.y = y  # Output data
+        self.output = np.zeros(y.shape)  # Current output of the network
+
+    # Forward propagation through the network
+    def feedforward(self):
+        self.layer1 = sigmoid(np.dot(self.input, self.weights1))  # First layer after activation
+        self.output = sigmoid(np.dot(self.layer1, self.weights2))  # Output layer after activation
+
+    # Backpropagation through the network (used for learning)
+    def backprop(self, learning_rate):
+        # Application of the chain rule to compute derivative of the loss function with respect to weights2 and weights1
+        d_weights2 = np.dot(self.layer1.T, 2 * (self.y - self.output) * sigmoid_derivative(self.output))
+        d_weights1 = np.dot(self.input.T, np.dot(2 * (self.y - self.output) * sigmoid_derivative(self.output),
+                                                 self.weights2.T) * sigmoid_derivative(self.layer1))
+
+        # Update weights with the derivative of the loss function
+        self.weights1 += learning_rate * d_weights1
+        self.weights2 += learning_rate * d_weights2
+
+    # Function to predict the output for a given input
+    def predict(self, x):
+        self.input = x
+        self.feedforward()  # Generate output
+        return self.output  # Return generated output
+
+    # Cost function of the network
+    def costFunction(self):
+        self.feedforward()  # Generate output
+        # Return the sum of square difference between the network output and actual output
+        return np.sum((self.y - self.output) ** 2)
+
+    # Training function of the network
+    # Method for building (training) the model
+    def buildModel(self, learning_rate=0.01, epochs=1000):
+        # The for loop will repeat 'epochs' number of times.
+        # Each iteration represents one full pass (forward and backward) over the entire dataset which is one epoch.
+        for epoch in range(epochs):
+            # First, the forward pass - the model applies weights to the inputs and runs through the network layers
+            self.feedforward()
+
+            # Second, the backward pass (Backpropagation) - the model adjusts its weights based on the error from the forward pass
+            self.backprop(learning_rate)
+
+            # For every 100th epoch (i.e., every time the remainder of epoch/100 is zero)
+            if epoch % 100 == 0:
+                # Print the current epoch number and the cost function value
+                # This provides a visibility into how the training is going - the cost should be going down over time
+                print("Epoch: {} - Cost: {}".format(epoch, self.costFunction()))
 
 
 def test():
-    ds = Dataset("xnor.data")
-    nn = MLP(ds, 2)
-    w1 = np.array([[-30, 20, 20], [10, -20, -20]])
-    w2 = np.array([[-10, 20, 20]])
-    nn.setWeights(w1, w2)
-    print(nn.predict(np.array([0, 0])))
-    print(nn.predict(np.array([0, 1])))
-    print(nn.predict(np.array([1, 0])))
-    print(nn.predict(np.array([1, 1])))
-    print(nn.costFunction())
+    # Dados de entrada
+    X = np.array([[0, 0, 1],
+                  [0, 1, 1],
+                  [1, 0, 1],
+                  [1, 1, 1]])
+    # Dados de saída
+    y = np.array([[0], [1], [1], [0]])
+
+    mlp = MLP(X, y, hidden_size=4)
+
+    # Construir modelo
+    mlp.buildModel(learning_rate=0.5, epochs=1500)
+
+    # Prever saída para um exemplo
+    print(mlp.predict(np.array([1, 0, 1])))
 
 
-def test2():
-    ds = Dataset("xnor.data")
-    nn = MLP(ds, 5)
-    nn.build_model()
-    print(nn.predict(np.array([0, 0])))
-    print(nn.predict(np.array([0, 1])))
-    print(nn.predict(np.array([1, 0])))
-    print(nn.predict(np.array([1, 1])))
-    print(nn.costFunction())
-
-
-#test()
-#test2()
+if __name__ == '__main__':
+    test()
