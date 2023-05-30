@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.feature_selection import f_regression
 
 class SelectKBest:
     def __init__(self, score_func, k):
@@ -20,7 +21,38 @@ class SelectKBest:
         self.fit(X, y)
         return self.transform(X)
     
-    
+def test1():
+    # Create a sample dataset
+    X = np.array([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
+    y = np.array([1, 2, 3])
+
+    # create a SelectKBest object and fit_transform the data
+    selector = SelectKBest(score_func=f_regression, k=3)
+    X_new = selector.fit_transform(X, y)
+
+    # print the selected features
+    print("test1")
+    print(X_new)
+
+def test2():
+    # Create a sample dataset
+    X = np.array([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]])
+    y = np.array([1, 2, 3])
+
+    # create a SelectKBest object and fit_transform the data
+    selector = SelectKBest(score_func=f_regression, k=3)
+    X_new = selector.fit_transform(X, y)
+
+    # print the selected features
+    print("test2")
+    print(X_new)
+
+if __name__ == "__main__":
+    # Run the test
+    test1()
+    test2()
+
+
 '''
 This is a basic implementation of the SelectKBest class that can be used for feature selection.
 

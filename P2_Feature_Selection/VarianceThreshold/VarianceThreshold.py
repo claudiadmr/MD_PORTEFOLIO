@@ -1,34 +1,62 @@
 import numpy as np
 
-
 class VarianceThreshold:
-    # Define method for initializing the class with a threshold parameter
     def __init__(self, threshold=0.0):
         if threshold < 0:
             raise ValueError("Threshold must be non-negative")
-
         self.threshold = threshold
         self.variance = None
         
-    # Define method for computing the variance of each feature
     def fit(self, X):
         self.variance = np.var(X, axis=0)
         return self
 
-    #Define method for applying the variance thresholding on the input data
     def transform(self, X):
         features_mask = self.variance > self.threshold
         X_selected = X[:, features_mask]
-        if X_selected is not None:
-            print('variance does not meet the threshold in:')
-            print(X_selected)
+        if X_selected.shape[1] == 0:
+            print("No features meet the variance threshold.")
         else:
-            print('variance meets the threshold')
+            print("Selected Features:")
+            print(X_selected)
         return X_selected
 
     def fit_transform(self, X):
         self.fit(X)
-        self.transform(X)
+        return self.transform(X)
+
+def test1():
+   # Create a sample dataset
+    X = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    threshold = 2.0
+
+    # Create a VarianceThreshold object with the given threshold
+    selector = VarianceThreshold(threshold)
+
+    # Fit and transform the dataset
+    # print the selected features
+    print("Test2")
+    X_selected = selector.fit_transform(X)
+
+
+def test2():
+    X = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+
+    # create a VarianceThreshold object with threshold=0
+    threshold = 6.0
+    selector = VarianceThreshold(threshold=threshold)
+
+    # fit_transform the data
+    # print the selected features
+    print("Test2")
+    X_new = selector.fit_transform(X)
+
+    
+   
+if __name__ == "__main__":
+    # Run the test
+    test1()
+    test2()
 
 
 

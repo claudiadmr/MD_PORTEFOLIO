@@ -15,6 +15,30 @@ def f_classif(dataset):
 
     return F_scores, p_values
 
+class Dataset:
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+
+
+def test():
+    # Create a sample dataset
+    X = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
+    y = np.array([0, 1, 0, 1])
+    dataset = Dataset(X, y)
+    # Call f_classif
+    F_scores, p_values = f_classif(dataset)
+
+    # Print the results
+    print("F-scores:", F_scores)
+    print("p-values:", p_values)
+
+
+if __name__ == "__main__":
+    # Run the test
+    test()
+
+
 
 '''
 This function takes a dataset and performs ANOVA (analysis of variance) for each feature in the dataset.

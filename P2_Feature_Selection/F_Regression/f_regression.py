@@ -37,6 +37,33 @@ def f_regression(dataset):
 
     return F, p_value
 
+class Dataset:
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+
+
+def test():
+    # Create a sample dataset
+    np.random.seed(42)
+    X = np.random.randn(1000, 3)
+    y = X[:, 0] + 2 * X[:, 1] - 0.5 * X[:, 2] + np.random.randn(1000)
+
+    dataset = Dataset(X, y)
+
+    # Calculate F-value and p-value
+    F, p_value = f_regression(dataset)
+
+    # Print the results
+    print("F-value:", F)
+    print("p-value:", p_value)
+
+
+if __name__ == "__main__":
+    # Run the test
+    test()
+
+
 
 
 

@@ -171,6 +171,8 @@ def build_tree(X, y, feature_indices, max_depth=None,
                 right_child=right_child, impurity=impurity_func(y))
 
 def pre_pruning(X, y, max_leaf_size, max_depth, p_value):
+    if p_value is None:
+        return False
     # Check if the number of samples in the node is less than max_leaf_size
     if len(y) <= max_leaf_size:
         return True
@@ -253,6 +255,7 @@ class DecisionTreeClassifier:
         self.threshold = threshold
         self.max_leaf_size = max_leaf_size
         self.p_value = p_value
+        
 
     def fit(self, X, y):
         self.n_features_ = X.shape[1]
@@ -269,7 +272,7 @@ class DecisionTreeClassifier:
     def predict(self, X):
         return predict(X, self.root_)
 
-
+'''
 # Carrega o conjunto de dados
 df = pd.read_csv('tennis.csv')
 label_enc = LabelEncoder()
@@ -287,6 +290,7 @@ dtc = DecisionTreeClassifier(max_depth=3, min_samples_leaf=2, impurity_measure="
 # Treina o modelo no conjunto de treinamento
 dtc.fit(X_train, y_train)
 
+
 # Faz previsões no conjunto de teste
 y_pred = dtc.predict(X_test)
 
@@ -294,3 +298,4 @@ y_pred = dtc.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 
 print("Precisão do modelo:", accuracy)
+'''

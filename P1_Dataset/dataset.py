@@ -135,6 +135,20 @@ def printDescrite(collumn):
     print(" -Most frequent value: ", unique_vals[np.argmax(counts)])
     
     
+
+def test():
+   ds = Dataset()
+   ds.read_tsv("wine.csv")
+   ds.describe()
+   ds.replace_to_null(1.73)
+   ds.count_nulls()
+   ds.replace_nulls_with_mean()
+
+
+if __name__ == "__main__":
+    # Run the test
+    test()
+
 '''
 This code defines a class Dataset that provides various methods to read and manipulate tabular data in CSV and TSV formats.
 
