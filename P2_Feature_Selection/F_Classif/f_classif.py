@@ -23,7 +23,7 @@ class Dataset:
 
 def test():
     # Create a sample dataset
-    X = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
+    X = np.array([[2, 6, 8], [1, 5, 2], [4, 2, 1], [8, 11, 10]])
     y = np.array([0, 1, 0, 1])
     dataset = Dataset(X, y)
     # Call f_classif

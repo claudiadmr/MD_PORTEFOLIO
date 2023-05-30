@@ -138,7 +138,7 @@ def printDescrite(collumn):
 
 def test():
    ds = Dataset()
-   ds.read_tsv("wine.csv")
+   ds.read_csv('wine.csv')
    ds.describe()
    ds.replace_to_null(1.73)
    ds.count_nulls()

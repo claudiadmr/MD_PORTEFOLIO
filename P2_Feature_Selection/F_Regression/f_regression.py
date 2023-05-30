@@ -45,7 +45,7 @@ class Dataset:
 
 def test():
     # Create a sample dataset
-    np.random.seed(42)
+    np.random.seed(70)
     X = np.random.randn(1000, 3)
     y = X[:, 0] + 2 * X[:, 1] - 0.5 * X[:, 2] + np.random.randn(1000)
 
