@@ -23,8 +23,15 @@ class Dataset:
 
 def test():
     # Create a sample dataset
-    X = np.array([[2, 6, 8], [1, 5, 2], [4, 2, 1], [8, 11, 10]])
-    y = np.array([0, 1, 0, 1])
+    # Características idade, salário e tempo de experiência
+    X = np.array([[25, 50000, 2],
+         [30, 60000, 5],
+         [35, 70000, 7],
+         [40, 80000, 10]])
+
+    # Variável de destino (0 = empregado, 1 = desempregado)
+    y = np.array([0, 0, 1, 1])
+
     dataset = Dataset(X, y)
     # Call f_classif
     F_scores, p_values = f_classif(dataset)
